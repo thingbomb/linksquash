@@ -202,7 +202,7 @@ function App() {
                   }}
                   id={`alias-${path}`}
                   autofocus={activeFocus() === `alias-${path}`}
-                  onFocus={(e) => setActiveFocus(`alias-${path}`)}
+                  onFocus={() => setActiveFocus(`alias-${path}`)}
                   class="font-semibold w-full"
                 />
               </TextFieldRoot>
@@ -229,7 +229,7 @@ function App() {
                     }
                   }}
                   autofocus={activeFocus() === `url-${path}`}
-                  onFocus={(e) => setActiveFocus(`url-${path}`)}
+                  onFocus={() => setActiveFocus(`url-${path}`)}
                   id={`url-${path}`}
                   class="font-semibold w-full"
                 />
