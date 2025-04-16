@@ -10,7 +10,16 @@ const root = document.getElementById("root");
 if (window.location.pathname === "/about/privacy") {
   render(() => <Privacy />, root!);
 } else if (window.location.pathname === "/") {
-  render(() => <App />, root!);
+  const aliases = localStorage.getItem("aliases");
+  const parsedAliases = aliases ? JSON.parse(aliases) : {};
+  const trimmedHash = window.location.hash.startsWith("#")
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+  if (Object.keys(parsedAliases).length > 0 && parsedAliases[trimmedHash]) {
+    window.location.href = parsedAliases[trimmedHash];
+  } else {
+    render(() => <App />, root!);
+  }
 } else {
   const aliases = localStorage.getItem("aliases");
   const parsedAliases = aliases ? JSON.parse(aliases) : {};

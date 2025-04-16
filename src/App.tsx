@@ -3,14 +3,57 @@ import { TextField, TextFieldRoot } from "@/components/ui/input";
 import { TrashIcon, Download, Upload } from "lucide-solid";
 import { createSignal, For, JSX } from "solid-js";
 
+function debounce(fn: Function, ms: number) {
+  let timeoutId: number | undefined;
+  return function (...args: any[]) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), ms) as unknown as number;
+  };
+}
+
+type AliasEntry = {
+  id: string;
+  path: string;
+  url: string;
+};
+
+let stableAliasArray: AliasEntry[] = [];
+
 function App() {
   const [aliases, setAliases] = createStoredSignal<Record<string, string>>(
     "aliases",
     {}
   );
+
+  const [stableEntries, setStableEntries] =
+    createSignal<AliasEntry[]>(stableAliasArray);
+
+  if (stableAliasArray.length === 0) {
+    const initialData = Object.entries(aliases()).map(([path, url]) => ({
+      id: crypto.randomUUID(),
+      path,
+      url,
+    }));
+
+    stableAliasArray.push(...initialData);
+  }
+
+  const syncToStorage = () => {
+    const storage: Record<string, string> = {};
+    stableAliasArray.forEach((entry) => {
+      if (entry.path.trim()) {
+        storage[entry.path] = entry.url;
+      }
+    });
+    setAliases(storage);
+  };
+
+  const debouncedSync = debounce(syncToStorage, 500);
+
   const [activeFocus, setActiveFocus] = createSignal<string | null>(null);
 
   const exportAliasesToCSV = () => {
+    syncToStorage();
     const currentAliases = aliases();
     if (Object.keys(currentAliases).length === 0) {
       alert("No aliases to export");
@@ -115,8 +158,30 @@ function App() {
           } else {
             setAliases(newAliases);
           }
+
+          stableAliasArray.length = 0;
+          Object.entries({ ...aliases() }).forEach(([path, url]) => {
+            stableAliasArray.push({
+              id: crypto.randomUUID(),
+              path,
+              url,
+            });
+          });
+
+          setStableEntries([...stableAliasArray]);
         } else {
           setAliases(newAliases);
+
+          stableAliasArray.length = 0;
+          Object.entries(newAliases).forEach(([path, url]) => {
+            stableAliasArray.push({
+              id: crypto.randomUUID(),
+              path,
+              url,
+            });
+          });
+
+          setStableEntries([...stableAliasArray]);
         }
 
         alert(
@@ -140,6 +205,17 @@ function App() {
 
     reader.readAsText(file);
   };
+
+  window.addEventListener("hashchange", () => {
+    const aliases = localStorage.getItem("aliases");
+    const parsedAliases = aliases ? JSON.parse(aliases) : {};
+    const trimmedHash = window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    if (Object.keys(parsedAliases).length > 0 && parsedAliases[trimmedHash]) {
+      window.location.href = parsedAliases[trimmedHash];
+    }
+  });
 
   return (
     <div class="p-10 text-center pt-20 max-w-4xl m-auto text-black dark:text-white">
@@ -172,24 +248,20 @@ function App() {
       </div>
 
       <div class="mb-6">
-        <For each={Object.entries(aliases())}>
-          {([path, url]) => (
+        <For each={stableEntries()}>
+          {(entry) => (
             <div class="flex gap-1 mt-1">
               <TextFieldRoot class="flex-1">
                 <TextField
                   placeholder="Alias (/pathname)"
-                  value={path}
-                  onBlur={(e) => {
-                    const target = e.currentTarget;
-                    if (target.value !== path) {
-                      setTimeout(() => {
-                        const newAliases = { ...aliases() };
-                        delete newAliases[path];
-                        newAliases[target.value] = url;
-                        setAliases(newAliases);
-                      }, 200);
-                    }
+                  value={entry.path}
+                  onInput={(e) => {
+                    entry.path = e.currentTarget.value;
+                    debouncedSync();
+                  }}
+                  onBlur={() => {
                     setActiveFocus(null);
+                    syncToStorage();
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -200,27 +272,23 @@ function App() {
                       e.preventDefault();
                     }
                   }}
-                  id={`alias-${path}`}
-                  autofocus={activeFocus() === `alias-${path}`}
-                  onFocus={() => setActiveFocus(`alias-${path}`)}
+                  id={`alias-${entry.id}`}
+                  autofocus={activeFocus() === `alias-${entry.id}`}
+                  onFocus={() => setActiveFocus(`alias-${entry.id}`)}
                   class="font-semibold w-full"
                 />
               </TextFieldRoot>
               <TextFieldRoot class="flex-1">
                 <TextField
                   placeholder="URL"
-                  value={url}
-                  onBlur={(e) => {
-                    const target = e.currentTarget;
-                    if (target.value !== url) {
-                      setTimeout(() => {
-                        setAliases({
-                          ...aliases(),
-                          [path]: target.value,
-                        });
-                      }, 200);
-                    }
+                  value={entry.url}
+                  onInput={(e) => {
+                    entry.url = e.currentTarget.value;
+                    debouncedSync();
+                  }}
+                  onBlur={() => {
                     setActiveFocus(null);
+                    syncToStorage();
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -228,18 +296,25 @@ function App() {
                       (e.target as HTMLInputElement).blur();
                     }
                   }}
-                  autofocus={activeFocus() === `url-${path}`}
-                  onFocus={() => setActiveFocus(`url-${path}`)}
-                  id={`url-${path}`}
+                  autofocus={activeFocus() === `url-${entry.id}`}
+                  onFocus={() => {
+                    setActiveFocus(`url-${entry.id}`);
+                  }}
+                  id={`url-${entry.id}`}
                   class="font-semibold w-full"
                 />
               </TextFieldRoot>
               <button
                 class="text-white bg-black dark:text-black dark:bg-white rounded-md border-1 border-white/50 font-semibold p-1 hover:bg-black/80 dark:hover:bg-white/80"
                 onClick={() => {
-                  const newAliases = { ...aliases() };
-                  delete newAliases[path];
-                  setAliases(newAliases);
+                  const index = stableAliasArray.findIndex(
+                    (item) => item.id === entry.id
+                  );
+                  if (index !== -1) {
+                    stableAliasArray.splice(index, 1);
+                    setStableEntries([...stableAliasArray]);
+                    syncToStorage();
+                  }
                 }}
               >
                 <TrashIcon class="size-5" />
@@ -249,7 +324,9 @@ function App() {
         </For>
         <button
           onClick={() => {
-            setAliases({ ...aliases(), [""]: "" });
+            const newEntry = { id: crypto.randomUUID(), path: "", url: "" };
+            stableAliasArray.push(newEntry);
+            setStableEntries([...stableAliasArray]);
           }}
           class="text-white mt-2 bg-black dark:text-black dark:bg-white rounded-md border-1 border-white/50 font-semibold p-2 w-full hover:bg-black/80 dark:hover:bg-white/80"
         >
