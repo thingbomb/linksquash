@@ -15,8 +15,11 @@ if (window.location.pathname === "/about/privacy") {
   const trimmedHash = window.location.hash.startsWith("#")
     ? window.location.hash.slice(1)
     : window.location.hash;
-  if (Object.keys(parsedAliases).length > 0 && parsedAliases[trimmedHash]) {
-    window.location.href = parsedAliases[trimmedHash];
+  if (
+    Object.keys(parsedAliases).length > 0 &&
+    parsedAliases[trimmedHash.toLowerCase()]
+  ) {
+    window.location.href = parsedAliases[trimmedHash.toLowerCase()];
   } else {
     render(() => <App />, root!);
   }
@@ -26,8 +29,11 @@ if (window.location.pathname === "/about/privacy") {
   const trimmedPathname = window.location.pathname.startsWith("/")
     ? window.location.pathname.slice(1)
     : window.location.pathname;
-  if (Object.keys(parsedAliases).length > 0 && parsedAliases[trimmedPathname]) {
-    window.location.href = parsedAliases[trimmedPathname];
+  if (
+    Object.keys(parsedAliases).length > 0 &&
+    parsedAliases[trimmedPathname.toLowerCase()]
+  ) {
+    window.location.href = parsedAliases[trimmedPathname.toLowerCase()];
   } else {
     render(() => <NotFound />, root!);
   }

@@ -43,6 +43,10 @@ function App() {
     stableAliasArray.forEach((entry) => {
       if (entry.path.trim()) {
         storage[entry.path] = entry.url;
+        if (entry.path.toLowerCase() !== entry.path) {
+          delete storage[entry.path];
+          storage[entry.path.toLowerCase()] = entry.url;
+        }
       }
     });
     setAliases(storage);
@@ -138,7 +142,7 @@ function App() {
           if (parts.length >= 2) {
             const [alias, url] = parts;
             if (alias && url) {
-              newAliases[alias] = url;
+              newAliases[alias.toLowerCase()] = url;
             }
           }
         }
@@ -272,6 +276,8 @@ function App() {
                       e.preventDefault();
                     }
                   }}
+                  autoCapitalize="none"
+                  autocorrect="off"
                   id={`alias-${entry.id}`}
                   autofocus={activeFocus() === `alias-${entry.id}`}
                   onFocus={() => setActiveFocus(`alias-${entry.id}`)}
@@ -290,6 +296,8 @@ function App() {
                     setActiveFocus(null);
                     syncToStorage();
                   }}
+                  autoCapitalize="none"
+                  autocorrect="off"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
