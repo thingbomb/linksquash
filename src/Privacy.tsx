@@ -6,9 +6,10 @@ export default function Privacy() {
 
         <p>
           We care about your privacy. We don't require you to create an account
-          to use Notebomb and we don't use any third-party cookies. Many privacy
-          regulations require us to stuff a lot inside our privacy policy, so if
-          you don't need to read the full version, here's a quick rundown:
+          to use Linksquash and we don't use any third-party cookies. Many
+          privacy regulations require us to stuff a lot inside our privacy
+          policy, so if you don't need to read the full version, here's a quick
+          rundown:
         </p>
         <ul class="list-disc pl-6">
           <li>
